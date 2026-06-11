@@ -3,6 +3,8 @@ import { execSync } from "node:child_process";
 import cloudflare from "@astrojs/cloudflare";
 import react from "@astrojs/react";
 import tailwindcss from "@tailwindcss/vite";
+import iosBackNavFix from "@tinloof/astro-ios-backnav-fix";
+import prefetch from "@tinloof/astro-prefetch";
 import { svgSprite } from "@tinloof/typed-svg-sprite/astro";
 import { defineConfig, envField, fontProviders } from "astro/config";
 
@@ -17,9 +19,6 @@ const BUILD_VERSION = (() => {
 
 // https://astro.build/config
 export default defineConfig({
-  prefetch: {
-    defaultStrategy: "viewport",
-  },
   output: "server",
   env: {
     schema: {
@@ -66,6 +65,8 @@ export default defineConfig({
     },
   },
   integrations: [
+    iosBackNavFix(),
+    prefetch(),
     react(),
     svgSprite({
       generateIconComponent: {

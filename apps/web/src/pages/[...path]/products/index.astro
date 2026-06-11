@@ -10,7 +10,9 @@ const end = performance.now();
 console.log(`[products] loadGlobalData took ${end - now}ms`);
 const globalDataResult = globalData.result;
 
-Astro.response.headers.set("Cache-Control", "private, no-store");
+// "private" skips CDN/middleware caching but stays prefetch-cacheable
+// client-side ("no-store" would make @tinloof/astro-prefetch reject it).
+Astro.response.headers.set("Cache-Control", "private");
 
 const syncTags = globalData.syncTags || [];
 ---

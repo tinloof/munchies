@@ -228,6 +228,12 @@ importers:
       '@stripe/stripe-js':
         specifier: ^8.6.4
         version: 8.6.4
+      '@tinloof/astro-ios-backnav-fix':
+        specifier: ^0.1.1
+        version: 0.1.1(astro@5.16.11(patch_hash=3mvqtruzsbjt6zdqialzqgvlbu)(@types/node@20.19.30)(ioredis@5.9.2)(jiti@2.6.1)(lightningcss@1.30.2)(rollup@4.55.3)(tsx@4.21.0)(typescript@5.9.2)(yaml@2.8.2))
+      '@tinloof/astro-prefetch':
+        specifier: ^0.1.1
+        version: 0.1.1(astro@5.16.11(patch_hash=3mvqtruzsbjt6zdqialzqgvlbu)(@types/node@20.19.30)(ioredis@5.9.2)(jiti@2.6.1)(lightningcss@1.30.2)(rollup@4.55.3)(tsx@4.21.0)(typescript@5.9.2)(yaml@2.8.2))
       '@tinloof/sanity-document-options':
         specifier: ^1.3.2
         version: 1.3.2(@emotion/is-prop-valid@1.4.0)(@tinloof/sanity-extends@1.2.2(sanity@5.5.0(@emotion/is-prop-valid@1.4.0)(@noble/hashes@2.0.1)(@portabletext/sanity-bridge@2.0.0(@types/react@19.2.9))(@swc/helpers@0.5.15)(@types/node@20.19.30)(@types/react-dom@19.2.3(@types/react@19.2.9))(@types/react@19.2.9)(babel-plugin-react-compiler@1.0.0)(jiti@2.6.1)(lightningcss@1.30.2)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(styled-components@6.3.8(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(tsx@4.21.0)(typescript@5.9.2)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@20.19.30)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))(yaml@2.8.2)))(@types/react@19.2.9)(react-dom@19.2.3(react@19.2.3))(react-is@19.2.3)(react@19.2.3)(rxjs@7.8.2)(sanity@5.5.0(@emotion/is-prop-valid@1.4.0)(@noble/hashes@2.0.1)(@portabletext/sanity-bridge@2.0.0(@types/react@19.2.9))(@swc/helpers@0.5.15)(@types/node@20.19.30)(@types/react-dom@19.2.3(@types/react@19.2.9))(@types/react@19.2.9)(babel-plugin-react-compiler@1.0.0)(jiti@2.6.1)(lightningcss@1.30.2)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(styled-components@6.3.8(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(tsx@4.21.0)(typescript@5.9.2)(vitest@3.2.4(@types/debug@4.1.12)(@types/node@20.19.30)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))(yaml@2.8.2))(styled-components@6.3.8(react-dom@19.2.3(react@19.2.3))(react@19.2.3))
@@ -7176,6 +7182,18 @@ packages:
 
   '@tanstack/virtual-core@3.13.18':
     resolution: {integrity: sha512-Mx86Hqu1k39icq2Zusq+Ey2J6dDWTjDvEv43PJtRCoEYTLyfaPnxIQ6iy7YAOK0NV/qOEmZQ/uCufrppZxTgcg==}
+
+  '@tinloof/astro-ios-backnav-fix@0.1.1':
+    resolution: {integrity: sha512-fO8gFyzBYGHwYW2j9TUNMLyV/4OZk+AwvSHmGtt4YnHirm9gRxJebT15dXzjKOHaFtC+ZDEWMarzsC5bepOBiw==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      astro: ^4.0.0 || ^5.0.0
+
+  '@tinloof/astro-prefetch@0.1.1':
+    resolution: {integrity: sha512-GHieaGOZ6W3moN3WFV76ljbQITeWqhOlymDv+AGjvupTeYL21GB7ud38wFbGaOTKGp8bNchiwPjhmRvERte5Qw==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      astro: ^5.0.0 || ^6.0.0
 
   '@tinloof/medusa-sanity-sync@0.1.1':
     resolution: {integrity: sha512-kb9tzGocgU8o6iZnl8g6+XimrX2JNgUyBRoFoEWr70YbvOWQJ9oEg2S3JUjLF8doA5EjjolMFSRFGOychnS6kg==}
@@ -22575,6 +22593,14 @@ snapshots:
   '@tanstack/table-core@8.21.3': {}
 
   '@tanstack/virtual-core@3.13.18': {}
+
+  '@tinloof/astro-ios-backnav-fix@0.1.1(astro@5.16.11(patch_hash=3mvqtruzsbjt6zdqialzqgvlbu)(@types/node@20.19.30)(ioredis@5.9.2)(jiti@2.6.1)(lightningcss@1.30.2)(rollup@4.55.3)(tsx@4.21.0)(typescript@5.9.2)(yaml@2.8.2))':
+    dependencies:
+      astro: 5.16.11(patch_hash=3mvqtruzsbjt6zdqialzqgvlbu)(@types/node@20.19.30)(ioredis@5.9.2)(jiti@2.6.1)(lightningcss@1.30.2)(rollup@4.55.3)(tsx@4.21.0)(typescript@5.9.2)(yaml@2.8.2)
+
+  '@tinloof/astro-prefetch@0.1.1(astro@5.16.11(patch_hash=3mvqtruzsbjt6zdqialzqgvlbu)(@types/node@20.19.30)(ioredis@5.9.2)(jiti@2.6.1)(lightningcss@1.30.2)(rollup@4.55.3)(tsx@4.21.0)(typescript@5.9.2)(yaml@2.8.2))':
+    dependencies:
+      astro: 5.16.11(patch_hash=3mvqtruzsbjt6zdqialzqgvlbu)(@types/node@20.19.30)(ioredis@5.9.2)(jiti@2.6.1)(lightningcss@1.30.2)(rollup@4.55.3)(tsx@4.21.0)(typescript@5.9.2)(yaml@2.8.2)
 
   ? '@tinloof/medusa-sanity-sync@0.1.1(@medusajs/admin-sdk@2.13.0)(@medusajs/framework@2.13.0(@medusajs/cli@2.13.0(@types/node@20.19.30))(@types/node@20.19.30)(ioredis@5.9.2)(vite@6.4.1(@types/node@20.19.30)(jiti@1.21.7)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))(zod@4.3.5))(@medusajs/icons@2.13.0(react@18.3.1))(@medusajs/medusa@2.13.0(@emotion/is-prop-valid@1.4.0)(@medusajs/admin-sdk@2.13.0)(@medusajs/cli@2.13.0(@types/node@20.19.30))(@medusajs/framework@2.13.0(@medusajs/cli@2.13.0(@types/node@20.19.30))(@types/node@20.19.30)(ioredis@5.9.2)(vite@6.4.1(@types/node@20.19.30)(jiti@1.21.7)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))(zod@4.3.5))(@medusajs/icons@2.13.0(react@18.3.1))(@medusajs/test-utils@2.13.0)(@medusajs/ui@4.1.1(@types/react-dom@18.3.7(@types/react@18.3.27))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.2))(@swc/core@1.15.10(@swc/helpers@0.5.15))(@types/node@20.19.30)(@types/react-dom@18.3.7(@types/react@18.3.27))(@types/react@18.3.27)(awilix@8.0.1)(jiti@1.21.7)(lightningcss@1.30.2)(picomatch@4.0.3)(posthog-node@5.24.7)(react-dom@18.3.1(react@18.3.1))(react-router-dom@6.30.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(tsx@4.21.0)(typescript@5.9.2)(yaml@2.8.2))(@medusajs/ui@4.1.1(@types/react-dom@18.3.7(@types/react@18.3.27))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.2))'
   : dependencies:
