@@ -1,14 +1,16 @@
 import { resolve } from "node:path";
 import { defineCliConfig } from "sanity/cli";
-import config from "sanity.config";
+// Import the lightweight config (not the full studio config) so the CLI-config
+// loader (jiti, JSX disabled) never has to parse the JSX studio components.
+import config from "@/sanity/config";
 
 export default defineCliConfig({
   api: {
-    projectId: config.projectId,
-    dataset: config.dataset,
+    projectId: config.sanity.projectId,
+    dataset: config.sanity.dataset,
   },
   project: {
-    basePath: config.basePath,
+    basePath: config.sanity.studioUrl,
   },
   typegen: {
     path: "./src/sanity/**/*.{ts,tsx,js,jsx}",
