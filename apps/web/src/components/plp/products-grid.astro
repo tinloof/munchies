@@ -1,4 +1,5 @@
 ---
+import { env } from "cloudflare:workers";
 import type { HttpTypes } from "@medusajs/types";
 import { all } from "better-all";
 import { getRegion } from "@/lib/medusa/regions";
@@ -31,7 +32,7 @@ const {
     return loadDictionary();
   },
   async results() {
-    return searchProducts(Astro.locals.runtime.env.SEARCH, {
+    return searchProducts(env.SEARCH, {
       limit: 20,
       region_id: (await this.$.region)?.id,
       collection_id: collection,
@@ -39,6 +40,7 @@ const {
     });
   },
 });
+
 
 const end = performance.now();
 console.log(`[products] products-grid fetch took ${end - now}ms`);

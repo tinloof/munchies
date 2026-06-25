@@ -1,7 +1,7 @@
 import { ActionError, defineAction } from "astro:actions";
-import { z } from "astro:schema";
 import type { HttpTypes } from "@medusajs/types";
 import type { AstroCookies } from "astro";
+import { z } from "astro/zod";
 import { getCart } from "@/lib/medusa/cart";
 import medusa from "@/lib/medusa/client";
 import { getCartId, removeCartId } from "@/lib/medusa/cookies";

@@ -6,7 +6,7 @@ import { getTags, requestContext } from "./lib/context";
 const BUILD_VERSION = import.meta.env.BUILD_VERSION;
 
 const contextMiddleware = defineMiddleware((context, next) => {
-  const ctx = context.locals.runtime?.ctx;
+  const ctx = context.locals.cfContext;
   const { cookies } = context;
   const tags = new Set<string>();
   return requestContext.run({ ctx, cookies, tags }, next);
@@ -75,7 +75,7 @@ const countryCodeMiddleware = defineMiddleware((context, next) => {
 const cachingMiddleware = defineMiddleware(async (context, next) => {
   const { request, url } = context;
   const { pathname } = url;
-  const ctx = context.locals.runtime?.ctx;
+  const ctx = context.locals.cfContext;
 
   // Skip caching for non-GET, API routes, CMS, static assets, and draft mode
   const isDraftMode = request.headers
