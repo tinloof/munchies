@@ -44,11 +44,11 @@ const Template = templates[pageResult._type];
 
 // Extract first hero section for preloading
 const firstHero =
-  pageResult._type !== "text.page"
-    ? pageResult.sections?.find(
+  pageResult._type === "text.page"
+    ? undefined
+    : pageResult.sections?.find(
         (s: { _type: string }) => s._type === "section.hero"
-      )
-    : undefined;
+      );
 
 const syncTags = [...(page?.syncTags || []), ...(globalData.syncTags || [])];
 

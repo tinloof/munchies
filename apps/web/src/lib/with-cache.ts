@@ -12,7 +12,7 @@ export function withCache<T, Args extends unknown[]>(
     const tags =
       typeof tagsOption === "function" ? tagsOption(...args) : tagsOption;
     const ctx = getCtx();
-    const cache = typeof caches !== "undefined" ? caches.default : undefined;
+    const cache = typeof caches === "undefined" ? undefined : caches.default;
     const key = `v${BUILD_VERSION}-${fnKey}-${tags.join(",")}-${JSON.stringify(args)}`;
 
     addTags(tags);

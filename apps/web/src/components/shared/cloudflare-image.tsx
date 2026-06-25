@@ -77,13 +77,13 @@ export function generateSrcSet({
 }: GenerateSrcSetOptions): string {
   const aspectRatioValues = aspectRatio?.split("/");
   const aspectRatioWidth =
-    aspectRatioValues?.[0] != null
-      ? Number.parseFloat(aspectRatioValues[0])
-      : undefined;
+    aspectRatioValues?.[0] == null
+      ? undefined
+      : Number.parseFloat(aspectRatioValues[0]);
   const aspectRatioHeight =
-    aspectRatioValues?.[1] != null
-      ? Number.parseFloat(aspectRatioValues[1])
-      : undefined;
+    aspectRatioValues?.[1] == null
+      ? undefined
+      : Number.parseFloat(aspectRatioValues[1]);
 
   return widths
     .map((w) => {
@@ -121,13 +121,13 @@ export function Image({
 }: CloudflareImageProps) {
   const aspectRatioValues = aspectRatio?.split("/");
   const aspectRatioWidth =
-    aspectRatioValues?.[0] != null
-      ? Number.parseFloat(aspectRatioValues[0])
-      : undefined;
+    aspectRatioValues?.[0] == null
+      ? undefined
+      : Number.parseFloat(aspectRatioValues[0]);
   const aspectRatioHeight =
-    aspectRatioValues?.[1] != null
-      ? Number.parseFloat(aspectRatioValues[1])
-      : undefined;
+    aspectRatioValues?.[1] == null
+      ? undefined
+      : Number.parseFloat(aspectRatioValues[1]);
 
   const computedHeight =
     aspectRatioWidth && aspectRatioHeight
