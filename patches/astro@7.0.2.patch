@@ -1,0 +1,13 @@
+diff --git a/dist/runtime/server/render/page.js b/dist/runtime/server/render/page.js
+index 9a983dceb7f8c67c319214d8a396d66cf96c0e00..0ec17d82fdb50af3464629fa78b64b79f6e57d09 100644
+--- a/dist/runtime/server/render/page.js
++++ b/dist/runtime/server/render/page.js
+@@ -33,7 +33,7 @@ async function renderPage(result, componentFactory, props, children, streaming,
+   result._metadata.headInTree = result.componentMetadata.get(componentFactory.moduleId)?.containsHead ?? false;
+   let body;
+   if (streaming) {
+-    if (isNode && !isDeno) {
++    if (isNode && !isDeno && typeof WebSocketPair === "undefined") {
+       const nodeBody = await renderToAsyncIterable(
+         result,
+         componentFactory,
