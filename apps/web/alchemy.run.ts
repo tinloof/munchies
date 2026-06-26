@@ -130,7 +130,7 @@ export default Alchemy.Stack(
 
 Stage \`${stage}\` · commit \`${shortSha}\`
 
-_Redeploys on every push; torn down automatically when this PR closes._`,
+_Redeploys on every push; torn down when the branch is deleted._`,
       });
     }
 
