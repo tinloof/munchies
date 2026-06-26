@@ -19,11 +19,12 @@ import * as Layer from "effect/Layer";
  * Alchemy as the infrastructure layer.
  *
  * STAGES / PREVIEWS: the stack is stage-aware. The `prod` stage (push to main)
- * deploys to the stable worker names + the custom domain. Every other stage
- * (e.g. `pr-123` from CI, or a local `dev_*` stage) deploys fully isolated
- * resources with auto-generated, stage-scoped names and NO custom domain — so
- * previews never touch production. On a PR, the preview URL is posted back as
- * a comment.
+ * deploys to the stable worker names (munchies-cf / munchies-search) + the
+ * custom domain. Every other stage deploys fully isolated resources named
+ * `munchies-web-<stage>` / `munchies-search-<stage>` (the stage is the branch
+ * name), giving clean URLs like https://munchies-web-<branch>.tinloof.workers.dev
+ * with NO custom domain — so previews never touch production. When an open PR
+ * exists for the branch, the preview URL is posted back as a comment.
  *
  * Auth + state use your Cloudflare profile (`alchemy login`). State is stored
  * remotely (`Cloudflare.state()`); run `pnpm alchemy:bootstrap` once first.
@@ -44,8 +45,9 @@ export default Alchemy.Stack(
     // data is committed, so no build step is needed here. Refresh the data
     // separately with `pnpm --filter @apps/search sync`.
     const search = yield* Cloudflare.Worker("Search", {
-      // prod: stable name; previews: auto stage-scoped name.
-      ...(isProd ? { name: "munchies-search" } : {}),
+      // prod: stable name; previews: clean per-branch name ->
+      // https://munchies-search-<branch>.tinloof.workers.dev
+      name: isProd ? "munchies-search" : `munchies-search-${stage}`,
       main: "../search/src/index.ts",
       compatibility: {
         date: "2026-01-21",
@@ -78,11 +80,11 @@ export default Alchemy.Stack(
       bundle: false,
       assets: "dist/client",
 
-      // prod: stable name + the production custom domain; previews: auto
-      // stage-scoped name on a *.workers.dev URL, no custom domain.
-      ...(isProd
-        ? { name: "munchies-cf", domain: "munchies.tinloof.com" }
-        : {}),
+      // prod: stable name + the production custom domain; previews: clean
+      // per-branch name -> https://munchies-web-<branch>.tinloof.workers.dev
+      // (no custom domain).
+      name: isProd ? "munchies-cf" : `munchies-web-${stage}`,
+      ...(isProd ? { domain: "munchies.tinloof.com" } : {}),
       compatibility: {
         date: "2026-01-21",
         flags: ["nodejs_compat", "global_fetch_strictly_public"],

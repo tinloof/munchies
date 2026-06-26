@@ -66,15 +66,19 @@ jobs:
             echo "Branch '$BRANCH' -> stage 'prod'"
             exit 0
           fi
-          # Per-branch preview stage = readable prefix + short hash of the RAW
-          # branch name. The hash makes it collision-proof (distinct branches
-          # never share a stage), keeps it <=20 chars (so the longest worker
-          # name stays under Cloudflare's 63-char limit), guarantees it's never
-          # empty, and ensures a non-main branch can never map to "prod".
+          # Per-branch preview stage = the sanitized branch name (clean, Vercel-style):
+          # the worker is named munchies-web-<stage> -> https://munchies-web-<branch>.tinloof.workers.dev.
+          # Kept hash-free for normal branches; only truncate + hash if the longest
+          # worker name ("munchies-search-<stage>") would exceed Cloudflare's 63-char
+          # limit. A branch that sanitizes to "prod" is remapped so it can't hit prod.
           slug=$(printf '%s' "$BRANCH" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')
-          head=$(printf '%s' "$slug" | cut -c1-13 | sed -E 's/-+$//')
-          [ -z "$head" ] && head="b"
-          stage="$head-$(printf '%s' "$BRANCH" | shasum | cut -c1-6)"
+          [ -z "$slug" ] && slug="branch"
+          if [ "${#slug}" -le 44 ]; then
+            stage="$slug"
+          else
+            stage="$(printf '%s' "$slug" | cut -c1-37 | sed -E 's/-+$//')-$(printf '%s' "$BRANCH" | shasum | cut -c1-6)"
+          fi
+          [ "$stage" = "prod" ] && stage="prod-preview"
           pr=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number // ""' || true)
           echo "stage=$stage" >> "$GITHUB_OUTPUT"
           echo "pr=$pr" >> "$GITHUB_OUTPUT"
@@ -129,12 +133,15 @@ jobs:
           BRANCH: ${{ github.event.ref }}
         run: |
           slug=$(printf '%s' "$BRANCH" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')
-          head=$(printf '%s' "$slug" | cut -c1-13 | sed -E 's/-+$//')
-          [ -z "$head" ] && head="b"
-          stage="$head-$(printf '%s' "$BRANCH" | shasum | cut -c1-6)"
-          # Belt-and-suspenders: a preview stage always has a "-<hash>" suffix,
-          # so it can never equal "prod"; refuse anyway.
-          if [ "$stage" = "prod" ] || [ -z "$stage" ]; then
+          [ -z "$slug" ] && slug="branch"
+          if [ "${#slug}" -le 44 ]; then
+            stage="$slug"
+          else
+            stage="$(printf '%s' "$slug" | cut -c1-37 | sed -E 's/-+$//')-$(printf '%s' "$BRANCH" | shasum | cut -c1-6)"
+          fi
+          [ "$stage" = "prod" ] && stage="prod-preview"
+          # Never destroy the prod stage (or main) from a branch deletion.
+          if [ "$stage" = "prod" ] || [ -z "$stage" ] || [ "$BRANCH" = "main" ]; then
             echo "Refusing to destroy stage '$stage' for branch '$BRANCH'"; exit 1
           fi
           echo "stage=$stage" >> "$GITHUB_OUTPUT"
