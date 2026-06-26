@@ -23,9 +23,6 @@
     "node": ">=22.12.0"
   },
   "pnpm": {
-    "overrides": {
-      "@tinloof/typed-svg-sprite": "link:../../typed-svg-sprite"
-    },
     "neverBuiltDependencies": ["msgpackr-extract"],
     "peerDependencyRules": {
       "allowedVersions": {
