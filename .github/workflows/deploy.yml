@@ -1,0 +1,104 @@
+name: Deploy
+
+# Deploys the web app + search worker to Cloudflare via Alchemy.
+#   - push to main          -> the `prod` stage (stable names + custom domain)
+#   - pull request          -> an isolated `pr-<n>` preview (workers.dev URL)
+#   - PR closed/merged      -> the preview stage is destroyed
+# The single Alchemy stack in apps/web/alchemy.run.ts deploys both workers and
+# is stage-aware, so previews never touch production.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+  workflow_dispatch:
+
+# One run per ref; don't cancel an in-flight deploy/destroy.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+# Stage: pr-<number> for PRs, "prod" for main, branch name otherwise.
+env:
+  STAGE: >-
+    ${{ github.event_name == 'pull_request'
+      && format('pr-{0}', github.event.number)
+      || (github.ref == 'refs/heads/main' && 'prod' || github.ref_name) }}
+
+jobs:
+  deploy:
+    # Run for pushes and for opened/reopened/synchronized PRs — but not when a PR is merely closed.
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # allow the preview-URL comment
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4 # pnpm version comes from root package.json "packageManager"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24 # Alchemy loads alchemy.run.ts via Node's native TS type-stripping (needs 22.18+/24)
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Deploy (web + search)
+        working-directory: apps/web
+        run: pnpm exec alchemy deploy --stage "$STAGE" --yes
+        env:
+          CI: "true"
+          # Alchemy / Cloudflare auth
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+          # PR preview comment context (GITHUB_REPOSITORY/GITHUB_SHA are also default Actions vars)
+          PULL_REQUEST: ${{ github.event.number }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # App build + runtime config (genv-managed; secret wins, var is the fallback)
+          PUBLIC_STRIPE_KEY: ${{ secrets.PUBLIC_STRIPE_KEY || vars.PUBLIC_STRIPE_KEY }}
+          PUBLIC_SANITY_STUDIO_PROJECT_ID: ${{ secrets.PUBLIC_SANITY_STUDIO_PROJECT_ID || vars.PUBLIC_SANITY_STUDIO_PROJECT_ID }}
+          PUBLIC_SANITY_STUDIO_DATASET: ${{ secrets.PUBLIC_SANITY_STUDIO_DATASET || vars.PUBLIC_SANITY_STUDIO_DATASET }}
+          SANITY_TOKEN: ${{ secrets.SANITY_TOKEN || vars.SANITY_TOKEN }}
+          MEDUSA_BACKEND_URL: ${{ secrets.MEDUSA_BACKEND_URL || vars.MEDUSA_BACKEND_URL }}
+          MEDUSA_PUBLISHABLE_KEY: ${{ secrets.MEDUSA_PUBLISHABLE_KEY || vars.MEDUSA_PUBLISHABLE_KEY }}
+          CF_ZONE_ID: ${{ secrets.CF_ZONE_ID || vars.CF_ZONE_ID }}
+          CF_TOKEN: ${{ secrets.CF_TOKEN || vars.CF_TOKEN }}
+
+  cleanup:
+    # When a PR is closed (merged or not), tear down its preview stage.
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Safety check (never destroy prod)
+        run: |
+          if [ "$STAGE" = "prod" ] || [ -z "$STAGE" ]; then
+            echo "Refusing to destroy stage '$STAGE'"
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Destroy preview (${{ env.STAGE }})
+        working-directory: apps/web
+        run: pnpm exec alchemy destroy --stage "$STAGE" --yes
+        env:
+          CI: "true"
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+          PULL_REQUEST: ${{ github.event.number }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PUBLIC_STRIPE_KEY: ${{ secrets.PUBLIC_STRIPE_KEY || vars.PUBLIC_STRIPE_KEY }}
+          PUBLIC_SANITY_STUDIO_PROJECT_ID: ${{ secrets.PUBLIC_SANITY_STUDIO_PROJECT_ID || vars.PUBLIC_SANITY_STUDIO_PROJECT_ID }}
+          PUBLIC_SANITY_STUDIO_DATASET: ${{ secrets.PUBLIC_SANITY_STUDIO_DATASET || vars.PUBLIC_SANITY_STUDIO_DATASET }}
+          SANITY_TOKEN: ${{ secrets.SANITY_TOKEN || vars.SANITY_TOKEN }}
+          MEDUSA_BACKEND_URL: ${{ secrets.MEDUSA_BACKEND_URL || vars.MEDUSA_BACKEND_URL }}
+          MEDUSA_PUBLISHABLE_KEY: ${{ secrets.MEDUSA_PUBLISHABLE_KEY || vars.MEDUSA_PUBLISHABLE_KEY }}
+          CF_ZONE_ID: ${{ secrets.CF_ZONE_ID || vars.CF_ZONE_ID }}
+          CF_TOKEN: ${{ secrets.CF_TOKEN || vars.CF_TOKEN }}
