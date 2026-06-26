@@ -61,17 +61,22 @@ export default Alchemy.Stack(
       isProd ? { title: "munchies-session" } : {}
     );
 
-    const web = yield* Cloudflare.StaticSite("Web", {
-      // Astro builds the worker (dist/server/entry.mjs) + assets (dist/client).
-      command: "astro build",
-      // The directory served by the ASSETS binding (the built client output).
-      outdir: "dist/client",
-
-      // Deploy the prebuilt worker without re-bundling. The default module
-      // rules (ESModule for **/*.js, **/*.mjs) upload entry.mjs and its
-      // ./chunks/*.mjs siblings the same way Wrangler does (no_bundle: true).
+    // The Astro app is built SEPARATELY (`astro build`, run before this deploy
+    // — see the alchemy:deploy script / CI build step) so its own
+    // `@astrojs/cloudflare` adapter produces the worker (dist/server/entry.mjs)
+    // and client assets (dist/client) with the correct build-time env. We
+    // upload that prebuilt output as-is (bundle: false). This is deliberate:
+    // building INSIDE the deploy would run `astro build` with Alchemy's
+    // serialized binding env, which mangles the `Config.redacted(...)` values
+    // and bakes a broken MEDUSA_BACKEND_URL (a public, build-inlined var) into
+    // the bundle.
+    const web = yield* Cloudflare.Worker("Web", {
+      // Prebuilt worker + assets. Default module rules (ESModule for
+      // **/*.js, **/*.mjs) upload entry.mjs and its ./chunks/*.mjs siblings the
+      // same way Wrangler's no_bundle does.
       main: "dist/server/entry.mjs",
       bundle: false,
+      assets: "dist/client",
 
       // prod: stable name + the production custom domain; previews: auto
       // stage-scoped name on a *.workers.dev URL, no custom domain.
@@ -92,20 +97,13 @@ export default Alchemy.Stack(
         // `env.SEARCH` (a Fetcher) in src/components/plp/products-grid.astro.
         SEARCH: search,
 
-        // Server-side runtime config read via `astro:env/server`. Each value
-        // is resolved from the environment (.env locally, CI env vars in
-        // GitHub Actions) at deploy time and stored as encrypted `secret_text`.
+        // RUNTIME secrets only (astro:env `access: "secret"`), resolved from the
+        // environment at deploy time and stored as encrypted `secret_text`.
+        // Public vars (MEDUSA_BACKEND_URL, CF_ZONE_ID, PUBLIC_*) are inlined by
+        // `astro build` and do NOT need runtime bindings.
         SANITY_TOKEN: Config.redacted("SANITY_TOKEN"),
-        MEDUSA_BACKEND_URL: Config.redacted("MEDUSA_BACKEND_URL"),
         MEDUSA_PUBLISHABLE_KEY: Config.redacted("MEDUSA_PUBLISHABLE_KEY"),
-        CF_ZONE_ID: Config.redacted("CF_ZONE_ID"),
         CF_TOKEN: Config.redacted("CF_TOKEN"),
-      },
-
-      // `alchemy dev` runs the Astro dev server locally.
-      dev: {
-        command: "astro dev --port 3000",
-        url: "http://localhost:3000",
       },
     });
 

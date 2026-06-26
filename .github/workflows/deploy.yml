@@ -4,8 +4,9 @@ name: Deploy
 #   - push to main          -> the `prod` stage (stable names + custom domain)
 #   - pull request          -> an isolated `pr-<n>` preview (workers.dev URL)
 #   - PR closed/merged      -> the preview stage is destroyed
-# The single Alchemy stack in apps/web/alchemy.run.ts deploys both workers and
-# is stage-aware, so previews never touch production.
+# Astro is built in a dedicated step (correct build-time env) and Alchemy
+# uploads the prebuilt output; the stack is stage-aware so previews never
+# touch production.
 on:
   push:
     branches: [main]
@@ -33,6 +34,19 @@ jobs:
     permissions:
       contents: read
       pull-requests: write # allow the preview-URL comment
+    # App config — needed by `astro build` (public vars are inlined here) AND by
+    # the deploy step (Config.redacted resolves the secrets into bindings).
+    # genv convention: secret wins, var is the fallback.
+    env:
+      CI: "true"
+      PUBLIC_STRIPE_KEY: ${{ secrets.PUBLIC_STRIPE_KEY || vars.PUBLIC_STRIPE_KEY }}
+      PUBLIC_SANITY_STUDIO_PROJECT_ID: ${{ secrets.PUBLIC_SANITY_STUDIO_PROJECT_ID || vars.PUBLIC_SANITY_STUDIO_PROJECT_ID }}
+      PUBLIC_SANITY_STUDIO_DATASET: ${{ secrets.PUBLIC_SANITY_STUDIO_DATASET || vars.PUBLIC_SANITY_STUDIO_DATASET }}
+      SANITY_TOKEN: ${{ secrets.SANITY_TOKEN || vars.SANITY_TOKEN }}
+      MEDUSA_BACKEND_URL: ${{ secrets.MEDUSA_BACKEND_URL || vars.MEDUSA_BACKEND_URL }}
+      MEDUSA_PUBLISHABLE_KEY: ${{ secrets.MEDUSA_PUBLISHABLE_KEY || vars.MEDUSA_PUBLISHABLE_KEY }}
+      CF_ZONE_ID: ${{ secrets.CF_ZONE_ID || vars.CF_ZONE_ID }}
+      CF_TOKEN: ${{ secrets.CF_TOKEN || vars.CF_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4 # pnpm version comes from root package.json "packageManager"
@@ -41,27 +55,24 @@ jobs:
           node-version: 24 # Alchemy loads alchemy.run.ts via Node's native TS type-stripping (needs 22.18+/24)
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+
+      # Build Astro itself, with the real build-time env (public vars get
+      # inlined correctly here — NOT inside the Alchemy deploy).
+      - name: Build Astro
+        working-directory: apps/web
+        run: pnpm build
+
+      # Upload the prebuilt worker + assets, wire bindings/secrets, and (on a
+      # PR) post the preview URL.
       - name: Deploy (web + search)
         working-directory: apps/web
         run: pnpm exec alchemy deploy --stage "$STAGE" --yes
         env:
-          CI: "true"
-          # Alchemy / Cloudflare auth
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
-          # PR preview comment context (GITHUB_REPOSITORY/GITHUB_SHA are also default Actions vars)
           PULL_REQUEST: ${{ github.event.number }}
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # App build + runtime config (genv-managed; secret wins, var is the fallback)
-          PUBLIC_STRIPE_KEY: ${{ secrets.PUBLIC_STRIPE_KEY || vars.PUBLIC_STRIPE_KEY }}
-          PUBLIC_SANITY_STUDIO_PROJECT_ID: ${{ secrets.PUBLIC_SANITY_STUDIO_PROJECT_ID || vars.PUBLIC_SANITY_STUDIO_PROJECT_ID }}
-          PUBLIC_SANITY_STUDIO_DATASET: ${{ secrets.PUBLIC_SANITY_STUDIO_DATASET || vars.PUBLIC_SANITY_STUDIO_DATASET }}
-          SANITY_TOKEN: ${{ secrets.SANITY_TOKEN || vars.SANITY_TOKEN }}
-          MEDUSA_BACKEND_URL: ${{ secrets.MEDUSA_BACKEND_URL || vars.MEDUSA_BACKEND_URL }}
-          MEDUSA_PUBLISHABLE_KEY: ${{ secrets.MEDUSA_PUBLISHABLE_KEY || vars.MEDUSA_PUBLISHABLE_KEY }}
-          CF_ZONE_ID: ${{ secrets.CF_ZONE_ID || vars.CF_ZONE_ID }}
-          CF_TOKEN: ${{ secrets.CF_TOKEN || vars.CF_TOKEN }}
 
   cleanup:
     # When a PR is closed (merged or not), tear down its preview stage.
@@ -70,6 +81,15 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+    env:
+      CI: "true"
+      # Provided so the stack evaluates identically during destroy.
+      PUBLIC_STRIPE_KEY: ${{ secrets.PUBLIC_STRIPE_KEY || vars.PUBLIC_STRIPE_KEY }}
+      PUBLIC_SANITY_STUDIO_PROJECT_ID: ${{ secrets.PUBLIC_SANITY_STUDIO_PROJECT_ID || vars.PUBLIC_SANITY_STUDIO_PROJECT_ID }}
+      PUBLIC_SANITY_STUDIO_DATASET: ${{ secrets.PUBLIC_SANITY_STUDIO_DATASET || vars.PUBLIC_SANITY_STUDIO_DATASET }}
+      SANITY_TOKEN: ${{ secrets.SANITY_TOKEN || vars.SANITY_TOKEN }}
+      MEDUSA_PUBLISHABLE_KEY: ${{ secrets.MEDUSA_PUBLISHABLE_KEY || vars.MEDUSA_PUBLISHABLE_KEY }}
+      CF_TOKEN: ${{ secrets.CF_TOKEN || vars.CF_TOKEN }}
     steps:
       - name: Safety check (never destroy prod)
         run: |
@@ -88,17 +108,8 @@ jobs:
         working-directory: apps/web
         run: pnpm exec alchemy destroy --stage "$STAGE" --yes
         env:
-          CI: "true"
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
           PULL_REQUEST: ${{ github.event.number }}
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PUBLIC_STRIPE_KEY: ${{ secrets.PUBLIC_STRIPE_KEY || vars.PUBLIC_STRIPE_KEY }}
-          PUBLIC_SANITY_STUDIO_PROJECT_ID: ${{ secrets.PUBLIC_SANITY_STUDIO_PROJECT_ID || vars.PUBLIC_SANITY_STUDIO_PROJECT_ID }}
-          PUBLIC_SANITY_STUDIO_DATASET: ${{ secrets.PUBLIC_SANITY_STUDIO_DATASET || vars.PUBLIC_SANITY_STUDIO_DATASET }}
-          SANITY_TOKEN: ${{ secrets.SANITY_TOKEN || vars.SANITY_TOKEN }}
-          MEDUSA_BACKEND_URL: ${{ secrets.MEDUSA_BACKEND_URL || vars.MEDUSA_BACKEND_URL }}
-          MEDUSA_PUBLISHABLE_KEY: ${{ secrets.MEDUSA_PUBLISHABLE_KEY || vars.MEDUSA_PUBLISHABLE_KEY }}
-          CF_ZONE_ID: ${{ secrets.CF_ZONE_ID || vars.CF_ZONE_ID }}
-          CF_TOKEN: ${{ secrets.CF_TOKEN || vars.CF_TOKEN }}
