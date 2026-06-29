@@ -86,7 +86,17 @@ export default Alchemy.Stack(
       name: isProd ? "munchies-cf" : `munchies-web-${stage}`,
       ...(isProd ? { domain: "munchies.tinloof.com" } : {}),
       compatibility: {
-        date: "2026-01-21",
+        // Pinned BELOW 2025-09-15 on purpose. As of compat date 2025-09-15,
+        // workerd's nodejs_compat `process` (process "v2") became Node-faithful
+        // enough that Object.prototype.toString.call(process) === "[object
+        // process]", which trips Astro's `isNode` check in renderPage → it
+        // builds an async-iterable SSR body that workerd can't stream →
+        // String()-coerced to a 15-byte "[object Object]" on every SSR route.
+        // Staying at 2025-09-14 keeps `isNode` false → renderToReadableStream →
+        // and lets us drop the astro@7.0.2 patch entirely. Threshold bisected
+        // on the astro-alchemy-test demo. Bump past 2025-09-14 ONLY if the
+        // patch (or an upstream Astro fix) is back in place.
+        date: "2025-09-14",
         flags: ["nodejs_compat", "global_fetch_strictly_public"],
       },
       observability: { enabled: true },

@@ -31,9 +31,6 @@
         "@tinloof/astro-prefetch>astro": "7",
         "@tinloof/astro-ios-backnav-fix>astro": "7"
       }
-    },
-    "patchedDependencies": {
-      "astro@7.0.2": "patches/astro@7.0.2.patch"
     }
   },
   "lint-staged": {
