@@ -28,6 +28,9 @@ public/cms
 
 .wrangler
 
+# alchemy local state / cache (remote state is used, but ignore defensively)
+.alchemy/
+
 # Sanity type files
 sanity.types.ts
 schema.json

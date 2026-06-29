@@ -40,9 +40,9 @@ export function Hamburger({
   );
 
   const portalContainer =
-    typeof document !== "undefined"
-      ? document.getElementById("navigation-portal")
-      : null;
+    typeof document === "undefined"
+      ? null
+      : document.getElementById("navigation-portal");
 
   const isMenuActive = data.navigation?.some(
     (menu) => menu._key === activeMenuState && menu._type === "dropdown"

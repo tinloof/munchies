@@ -40,7 +40,9 @@ export const StripeWrapper: React.FC<StripeWrapperProps> = ({
 
   return (
     <Elements options={options} stripe={stripePromise}>
-      {children}
+      {/* Cast bridges a benign ReactNode skew: @stripe/react-stripe-js resolves a
+          React ReactNode without `bigint`, vs the app's React 19 ReactNode. */}
+      {children as React.ComponentProps<typeof Elements>["children"]}
     </Elements>
   );
 };

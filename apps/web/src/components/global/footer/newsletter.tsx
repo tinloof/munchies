@@ -38,7 +38,6 @@ export function NewsLetter(props: NewsLetterProps) {
           <form
             action={action}
             className="flex flex-col gap-s lg:flex-row"
-            method="POST"
           >
             <input
               className="newletter-text h-20 w-full max-w-240 rounded-lg border-[1.5px] border-accent bg-transparent px-lg py-[7.5px] font-sans text-body-4xl leading-[140%] tracking-[-0.64px] outline-none placeholder:text-accent placeholder:text-body-4xl placeholder:opacity-60 lg:px-2xl lg:py-[6.5px] lg:text-body-8xl lg:tracking-[-0.96px] lg:placeholder:text-body-8xl"

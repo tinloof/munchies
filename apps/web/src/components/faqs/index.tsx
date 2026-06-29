@@ -70,11 +70,11 @@ export function FAQs({ data }: { data: NonNullable<FAQS_PAGE_QUERY_RESULT> }) {
 
   const onClickSearchResult = (result: FaqEntryWithCategory) => {
     setQuery("");
-    if (selectedCategory !== result.categorySlug) {
+    if (selectedCategory === result.categorySlug) {
+      scrollToQuestion(result._id);
+    } else {
       questionToScrollTo.current = result._id;
       setSelectedCategory(result.categorySlug ?? "");
-    } else {
-      scrollToQuestion(result._id);
     }
   };
 
@@ -174,7 +174,7 @@ export function FAQs({ data }: { data: NonNullable<FAQS_PAGE_QUERY_RESULT> }) {
                     <button
                       className="w-full rounded-lg px-4 py-2 text-start outline-none hover:bg-secondary focus:bg-secondary"
                       id={`search-${result._id}-${index}`}
-                      key={`search-${result._id}-${index}`}
+                      key={`search-${result._id}`}
                       onClick={() => onClickSearchResult(result)}
                       tabIndex={index + 1}
                       type="button"

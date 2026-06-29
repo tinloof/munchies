@@ -1,7 +1,10 @@
 {
-  "main": "dist/_worker.js/index.js",
+  "main": "@astrojs/cloudflare/entrypoints/server",
   "name": "munchies-cf",
-  "compatibility_date": "2026-01-21",
+  // Pinned <2025-09-15 to avoid Astro's isNode/workerd async-iterable SSR bug
+  // without patching astro — see the long note in alchemy.run.ts. The Alchemy
+  // deploy (alchemy.run.ts) is the source of truth; keep this in sync.
+  "compatibility_date": "2025-09-14",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "routes": [
     { "pattern": "munchies.tinloof.com", "custom_domain": true }

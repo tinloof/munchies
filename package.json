@@ -20,16 +20,18 @@
   },
   "packageManager": "pnpm@9.0.0",
   "engines": {
-    "node": ">=18"
+    "node": ">=22.12.0"
   },
   "pnpm": {
-    "overrides": {
-      "vite": "^6.4.1"
-    },
-    "patchedDependencies": {
-      "astro@5.16.11": "patches/astro@5.16.11.patch"
-    },
-    "neverBuiltDependencies": ["msgpackr-extract"]
+    "neverBuiltDependencies": [
+      "msgpackr-extract"
+    ],
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "@tinloof/astro-prefetch>astro": "7",
+        "@tinloof/astro-ios-backnav-fix>astro": "7"
+      }
+    }
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json,jsonc,css,scss,md,mdx,astro}": [

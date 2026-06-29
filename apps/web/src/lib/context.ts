@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import type { Runtime } from "@astrojs/cloudflare";
 import type { AstroCookies } from "astro";
 
-type Ctx = Runtime["runtime"]["ctx"];
+type Ctx = Runtime["cfContext"];
 
 export interface RequestContext {
   ctx: Ctx;

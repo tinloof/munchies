@@ -83,30 +83,28 @@ export default defineConfig({
       noExternal: ["@medusajs/js-sdk", "sanity"],
     },
   },
-  adapter: cloudflare(),
-  experimental: {
-    fonts: [
-      {
-        provider: fontProviders.google(),
-        name: "Instrument Sans",
-        cssVariable: "--font-instrumentSans",
-        subsets: ["latin"],
-        weights: ["400", "500", "600"],
-      },
-      {
-        provider: fontProviders.google(),
-        name: "Instrument Serif",
-        cssVariable: "--font-instrumentSerif",
-        subsets: ["latin"],
-        weights: ["400"],
-      },
-      {
-        provider: fontProviders.google(),
-        name: "Climate Crisis",
-        cssVariable: "--font-climateCrisis",
-        subsets: ["latin"],
-        weights: ["400"],
-      },
-    ],
-  },
+  adapter: cloudflare({ imageService: "passthrough" }),
+  fonts: [
+    {
+      provider: fontProviders.google(),
+      name: "Instrument Sans",
+      cssVariable: "--font-instrumentSans",
+      subsets: ["latin"],
+      weights: ["400", "500", "600"],
+    },
+    {
+      provider: fontProviders.google(),
+      name: "Instrument Serif",
+      cssVariable: "--font-instrumentSerif",
+      subsets: ["latin"],
+      weights: ["400"],
+    },
+    {
+      provider: fontProviders.google(),
+      name: "Climate Crisis",
+      cssVariable: "--font-climateCrisis",
+      subsets: ["latin"],
+      weights: ["400"],
+    },
+  ],
 });

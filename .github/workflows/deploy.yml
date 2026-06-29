@@ -1,0 +1,157 @@
+name: Deploy
+
+# Vercel-style deploys to Cloudflare via Alchemy:
+#   - push to main        -> the `prod` stage (stable names + custom domain)
+#   - push to any branch  -> an isolated per-branch preview (workers.dev URL).
+#                            If an open PR exists for that branch, the preview
+#                            URL is posted as a PR comment; otherwise no comment.
+#   - branch deleted      -> that branch's preview stage is destroyed
+#                            (only fires once this file is on the default branch)
+# Astro is built in a dedicated step and Alchemy uploads the prebuilt output;
+# the stack is stage-aware so previews never touch production.
+on:
+  push:
+    branches: ["**"]
+  delete:
+  workflow_dispatch:
+
+# Serialize runs per branch (short branch name across push/delete); don't
+# cancel an in-flight deploy/destroy.
+concurrency:
+  group: deploy-${{ (github.event.ref_type == 'branch' && github.event.ref) || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # push to any branch, or a manual dispatch (not the `delete` event).
+    if: github.event_name != 'delete'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # allow the preview-URL comment + `gh pr list`
+    # App config — needed by `astro build` (public vars are inlined here) AND by
+    # the deploy step (Config.redacted resolves the secrets into bindings).
+    # genv convention: secret wins, var is the fallback.
+    env:
+      CI: "true"
+      PUBLIC_STRIPE_KEY: ${{ secrets.PUBLIC_STRIPE_KEY || vars.PUBLIC_STRIPE_KEY }}
+      PUBLIC_SANITY_STUDIO_PROJECT_ID: ${{ secrets.PUBLIC_SANITY_STUDIO_PROJECT_ID || vars.PUBLIC_SANITY_STUDIO_PROJECT_ID }}
+      PUBLIC_SANITY_STUDIO_DATASET: ${{ secrets.PUBLIC_SANITY_STUDIO_DATASET || vars.PUBLIC_SANITY_STUDIO_DATASET }}
+      SANITY_TOKEN: ${{ secrets.SANITY_TOKEN || vars.SANITY_TOKEN }}
+      MEDUSA_BACKEND_URL: ${{ secrets.MEDUSA_BACKEND_URL || vars.MEDUSA_BACKEND_URL }}
+      MEDUSA_PUBLISHABLE_KEY: ${{ secrets.MEDUSA_PUBLISHABLE_KEY || vars.MEDUSA_PUBLISHABLE_KEY }}
+      CF_ZONE_ID: ${{ secrets.CF_ZONE_ID || vars.CF_ZONE_ID }}
+      CF_TOKEN: ${{ secrets.CF_TOKEN || vars.CF_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4 # pnpm version comes from root package.json "packageManager"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24 # Alchemy loads alchemy.run.ts via Node's native TS type-stripping (needs 22.18+/24)
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Derive the Alchemy stage from the branch, and find an open PR (if any).
+      #   main             -> stage "prod" (no PR comment)
+      #   any other branch -> "<readable-prefix>-<hash>" preview stage
+      - name: Resolve stage + PR
+        id: meta
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          if [ "$BRANCH" = "main" ]; then
+            echo "stage=prod" >> "$GITHUB_OUTPUT"
+            echo "pr=" >> "$GITHUB_OUTPUT"
+            echo "Branch '$BRANCH' -> stage 'prod'"
+            exit 0
+          fi
+          # Per-branch preview stage = the sanitized branch name (clean, Vercel-style):
+          # the worker is named munchies-web-<stage> -> https://munchies-web-<branch>.tinloof.workers.dev.
+          # Kept hash-free for normal branches; only truncate + hash if the longest
+          # worker name ("munchies-search-<stage>") would exceed Cloudflare's 63-char
+          # limit. A branch that sanitizes to "prod" is remapped so it can't hit prod.
+          slug=$(printf '%s' "$BRANCH" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')
+          [ -z "$slug" ] && slug="branch"
+          if [ "${#slug}" -le 44 ]; then
+            stage="$slug"
+          else
+            stage="$(printf '%s' "$slug" | cut -c1-37 | sed -E 's/-+$//')-$(printf '%s' "$BRANCH" | shasum | cut -c1-6)"
+          fi
+          [ "$stage" = "prod" ] && stage="prod-preview"
+          pr=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number // ""' || true)
+          echo "stage=$stage" >> "$GITHUB_OUTPUT"
+          echo "pr=$pr" >> "$GITHUB_OUTPUT"
+          echo "Branch '$BRANCH' -> stage '$stage' (open PR: '${pr:-none}')"
+
+      # Build Astro itself, with the real build-time env (public vars get
+      # inlined correctly here — NOT inside the Alchemy deploy).
+      - name: Build Astro
+        working-directory: apps/web
+        run: pnpm build
+
+      # Upload the prebuilt worker + assets, wire bindings/secrets, and — only
+      # when an open PR exists — post the preview URL as a comment on it.
+      - name: Deploy (web + search)
+        working-directory: apps/web
+        run: pnpm exec alchemy deploy --stage "$STAGE" --yes
+        env:
+          STAGE: ${{ steps.meta.outputs.stage }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+          PULL_REQUEST: ${{ steps.meta.outputs.pr }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  cleanup:
+    # When a branch is deleted, tear down its preview stage.
+    if: github.event_name == 'delete' && github.event.ref_type == 'branch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      CI: "true"
+      PUBLIC_STRIPE_KEY: ${{ secrets.PUBLIC_STRIPE_KEY || vars.PUBLIC_STRIPE_KEY }}
+      PUBLIC_SANITY_STUDIO_PROJECT_ID: ${{ secrets.PUBLIC_SANITY_STUDIO_PROJECT_ID || vars.PUBLIC_SANITY_STUDIO_PROJECT_ID }}
+      PUBLIC_SANITY_STUDIO_DATASET: ${{ secrets.PUBLIC_SANITY_STUDIO_DATASET || vars.PUBLIC_SANITY_STUDIO_DATASET }}
+      SANITY_TOKEN: ${{ secrets.SANITY_TOKEN || vars.SANITY_TOKEN }}
+      MEDUSA_PUBLISHABLE_KEY: ${{ secrets.MEDUSA_PUBLISHABLE_KEY || vars.MEDUSA_PUBLISHABLE_KEY }}
+      CF_TOKEN: ${{ secrets.CF_TOKEN || vars.CF_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Recompute the SAME stage the deploy job used for this branch. Must stay
+      # byte-for-byte identical to the deploy job's derivation.
+      - name: Resolve stage to destroy
+        id: meta
+        env:
+          BRANCH: ${{ github.event.ref }}
+        run: |
+          slug=$(printf '%s' "$BRANCH" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')
+          [ -z "$slug" ] && slug="branch"
+          if [ "${#slug}" -le 44 ]; then
+            stage="$slug"
+          else
+            stage="$(printf '%s' "$slug" | cut -c1-37 | sed -E 's/-+$//')-$(printf '%s' "$BRANCH" | shasum | cut -c1-6)"
+          fi
+          [ "$stage" = "prod" ] && stage="prod-preview"
+          # Never destroy the prod stage (or main) from a branch deletion.
+          if [ "$stage" = "prod" ] || [ -z "$stage" ] || [ "$BRANCH" = "main" ]; then
+            echo "Refusing to destroy stage '$stage' for branch '$BRANCH'"; exit 1
+          fi
+          echo "stage=$stage" >> "$GITHUB_OUTPUT"
+          echo "Branch '$BRANCH' deleted -> destroying stage '$stage'"
+      - name: Destroy preview
+        working-directory: apps/web
+        run: pnpm exec alchemy destroy --stage "$STAGE" --yes
+        env:
+          STAGE: ${{ steps.meta.outputs.stage }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

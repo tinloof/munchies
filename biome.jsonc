@@ -51,6 +51,16 @@
           }
         }
       }
+    },
+    {
+      // SVG asset files (icon sources fed to the sprite, the generated
+      // sprite.svg, and logos) are decorative assets, not source to lint —
+      // the generated Icon component renders them aria-hidden. Don't lint
+      // (noSvgWithoutTitle) or reformat them.
+      "includes": ["**/*.svg"],
+      "linter": { "enabled": false },
+      "formatter": { "enabled": false },
+      "assist": { "enabled": false }
     }
   ]
 }
