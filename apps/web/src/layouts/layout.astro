@@ -78,7 +78,66 @@ const visualEditingEnabled =
     <meta name="generator" content={Astro.generator}>
     <link rel="preload" as="image" href="/images/logo.svg" fetchpriority="high">
     <script is:inline>
-      window.history.scrollRestoration = "auto";
+      // Robust scroll restoration. The browser (and Astro's View Transitions
+      // router) restore the saved offset before late content — images, hydrated
+      // islands — has laid out, so the scroll lands short. Instead we hide the
+      // page and wait until it is actually tall enough to reach the saved offset,
+      // then scroll and reveal. Runs on first load and on every client-side swap.
+      (() => {
+        const REVEAL_TIMEOUT = 1000;
+
+        const restoreScroll = () => {
+          const y = history.state?.scrollY ?? 0;
+          if (y <= 0) {
+            return;
+          }
+
+          const root = document.documentElement;
+          let done = false;
+          let observer = null;
+          let timer = 0;
+
+          const isTallEnough = () =>
+            root.scrollHeight >= y + window.innerHeight;
+
+          const finish = () => {
+            if (done) {
+              return;
+            }
+            done = true;
+            observer?.disconnect();
+            clearTimeout(timer);
+            window.scrollTo(0, y);
+            root.style.visibility = "";
+          };
+
+          // Hide the page so the reflow-driven jump to the saved offset is unseen.
+          root.style.visibility = "hidden";
+
+          if (isTallEnough()) {
+            finish();
+            return;
+          }
+
+          observer = new MutationObserver(() => {
+            if (isTallEnough()) {
+              finish();
+            }
+          });
+          observer.observe(root, { childList: true, subtree: true });
+
+          // Safety net: reveal even if the page never reaches the saved offset.
+          timer = window.setTimeout(finish, REVEAL_TIMEOUT);
+        };
+
+        // Set up once; the listener survives swaps since `document` is not replaced.
+        if (!window.__munchiesScrollRestore) {
+          window.__munchiesScrollRestore = true;
+          history.scrollRestoration = "manual";
+          restoreScroll();
+          document.addEventListener("astro:after-swap", restoreScroll);
+        }
+      })();
     </script>
     <ClientRouter />
   </head>
