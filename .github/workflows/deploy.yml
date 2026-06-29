@@ -92,12 +92,9 @@ jobs:
 
       # Upload the prebuilt worker + assets, wire bindings/secrets, and — only
       # when an open PR exists — post the preview URL as a comment on it.
-      # TEMP: `--adopt` for the one-time prod cutover — take over the existing
-      # wrangler-deployed munchies-cf/munchies-search instead of failing on the
-      # name conflict. Remove this flag once prod is adopted.
       - name: Deploy (web + search)
         working-directory: apps/web
-        run: pnpm exec alchemy deploy --stage "$STAGE" --yes --adopt
+        run: pnpm exec alchemy deploy --stage "$STAGE" --yes
         env:
           STAGE: ${{ steps.meta.outputs.stage }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
